@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>圖片工具</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --card: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #4f8ef7;
+    --accent2: #f7a94f;
+    --accent3: #4ff7a0;
+    --text: #e8e8f0;
+    --text2: #8888a8;
+    --danger: #f74f4f;
+    --radius: 14px;
+    --safe-bottom: env(safe-area-inset-bottom, 20px);
+    --safe-top: env(safe-area-inset-top, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, 'SF Pro Display', sans-serif;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* ---- TOP BAR ---- */
+  .topbar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: calc(var(--safe-top) + 12px) 20px 12px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar h1 { font-size: 18px; font-weight: 700; letter-spacing: -.3px; flex: 1; }
+  .topbar h1 span { color: var(--accent); }
+
+  /* ---- MODE TABS ---- */
+  .mode-tabs {
+    display: flex; gap: 6px;
+    padding: 14px 16px 10px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .mode-tabs::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    flex-shrink: 0;
+    padding: 9px 18px;
+    border-radius: 50px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    color: var(--text2);
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all .2s;
+  }
+  .tab-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ---- PANELS ---- */
+  .panel { display: none; padding: 0 16px 100px; animation: fadeUp .25s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+
+  /* ---- CARD ---- */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .card-title {
+    font-size: 11px; font-weight: 700;
+    color: var(--text2); letter-spacing: .8px;
+    text-transform: uppercase; margin-bottom: 12px;
+  }
+
+  /* ---- FILE UPLOAD ---- */
+  .upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 28px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    position: relative;
+  }
+  .upload-area.dragover { border-color: var(--accent); background: rgba(79,142,247,.08); }
+  .upload-area input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-icon { font-size: 36px; margin-bottom: 8px; }
+  .upload-text { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .upload-sub { font-size: 12px; color: var(--text2); }
+
+  /* ---- THUMBNAIL STRIP ---- */
+  .thumb-strip {
+    display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; padding: 4px 0;
+  }
+  .thumb-strip::-webkit-scrollbar { display: none; }
+  .thumb-item {
+    flex-shrink: 0; position: relative;
+    width: 70px; height: 70px;
+    border-radius: 10px; overflow: hidden;
+    border: 1.5px solid var(--border);
+  }
+  .thumb-item img { width: 100%; height: 100%; object-fit: cover; }
+  .thumb-del {
+    position: absolute; top: 3px; right: 3px;
+    width: 18px; height: 18px;
+    background: rgba(247,79,79,.9); border-radius: 50%;
+    font-size: 11px; line-height: 18px; text-align: center;
+    color: #fff; cursor: pointer;
+  }
+  .file-count { font-size: 12px; color: var(--text2); margin-top: 8px; }
+  .file-count span { color: var(--accent); font-weight: 700; }
+
+  /* ---- OPTION PILLS ---- */
+  .pill-group { display: flex; flex-wrap: wrap; gap: 7px; }
+  .pill {
+    padding: 7px 14px; border-radius: 50px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text2); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all .15s;
+  }
+  .pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .pill.active-yellow { background: var(--accent2); border-color: var(--accent2); color: #000; }
+  .pill.active-green { background: var(--accent3); border-color: var(--accent3); color: #000; }
+
+  /* ---- TOGGLE SWITCH ---- */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .toggle-row label { font-size: 14px; color: var(--text); }
+  .toggle {
+    width: 44px; height: 26px; border-radius: 13px;
+    background: var(--border); cursor: pointer;
+    position: relative; transition: background .2s;
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle::after {
+    content: ''; position: absolute;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; top: 3px; left: 3px;
+    transition: transform .2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,.4);
+  }
+  .toggle.on::after { transform: translateX(18px); }
+
+  /* ---- INPUT ---- */
+  input[type=number], input[type=text], textarea {
+    width: 100%; background: var(--surface);
+    border: 1.5px solid var(--border); border-radius: 10px;
+    color: var(--text); font-size: 14px;
+    padding: 10px 12px; outline: none;
+    -webkit-appearance: none;
+    transition: border-color .2s;
+  }
+  input[type=number]:focus, input[type=text]:focus, textarea:focus {
+    border-color: var(--accent);
+  }
+  textarea { resize: vertical; min-height: 100px; font-family: 'SF Mono', monospace; font-size: 12px; }
+  .input-row { display: flex; gap: 10px; align-items: center; }
+  .input-row label { font-size: 12px; color: var(--text2); white-space: nowrap; min-width: 40px; }
+
+  /* ---- PREVIEW INFO ---- */
+  .info-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 8px;
+    background: rgba(79,142,247,.12);
+    border: 1px solid rgba(79,142,247,.25);
+    font-size: 12px; color: var(--accent); font-weight: 600;
+  }
+
+  /* ---- CROP CANVAS ---- */
+  .crop-wrapper {
+    position: relative; width: 100%;
+    background: #000; border-radius: 12px; overflow: hidden;
+    touch-action: none;
+  }
+  #cropCanvas {
+    display: block; width: 100%; height: auto;
+    max-height: 50dvh; object-fit: contain;
+  }
+  .crop-overlay {
+    position: absolute; border: 2px solid var(--accent2);
+    box-shadow: 0 0 0 9999px rgba(0,0,0,.5);
+    cursor: move; touch-action: none;
+  }
+  .crop-handle {
+    position: absolute; width: 16px; height: 16px;
+    background: var(--accent2); border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .crop-handle.tl { top: 0; left: 0; cursor: nw-resize; }
+  .crop-handle.tr { top: 0; right: 0; transform: translate(50%,-50%); cursor: ne-resize; }
+  .crop-handle.bl { bottom: 0; left: 0; transform: translate(-50%,50%); cursor: sw-resize; }
+  .crop-handle.br { bottom: 0; right: 0; transform: translate(50%,50%); cursor: se-resize; }
+
+  /* ---- BUTTONS ---- */
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 15px;
+    border-radius: 12px; border: none;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    transition: all .15s; letter-spacing: -.2px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:active { opacity: .8; transform: scale(.98); }
+  .btn-secondary { background: var(--card); border: 1.5px solid var(--border); color: var(--text); }
+  .btn-secondary:active { opacity: .8; }
+  .btn-yellow { background: var(--accent2); color: #000; }
+  .btn-green { background: var(--accent3); color: #000; }
+  .btn-row { display: flex; gap: 10px; }
+  .btn-row .btn { flex: 1; }
+  .btn:disabled { opacity: .4; pointer-events: none; }
+
+  /* ---- PROGRESS ---- */
+  .progress-bar-wrap {
+    height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%; background: var(--accent); border-radius: 3px;
+    width: 0%; transition: width .3s;
+  }
+
+  /* ---- BOTTOM ACTION ---- */
+  .bottom-action {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    padding: 12px 16px calc(var(--safe-bottom) + 10px);
+    background: rgba(10,10,15,.9);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+  }
+
+  /* ---- RESULT GRID ---- */
+  .result-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+  }
+  .result-item {
+    border-radius: 12px; overflow: hidden;
+    border: 1px solid var(--border); background: var(--surface);
+  }
+  .result-item img { width: 100%; display: block; }
+  .result-item-footer {
+    padding: 8px 10px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .result-info { font-size: 11px; color: var(--text2); }
+  .dl-btn {
+    padding: 5px 10px; border-radius: 7px;
+    background: var(--accent); color: #fff;
+    font-size: 11px; font-weight: 700;
+    text-decoration: none; display: inline-block;
+  }
+
+  /* ---- BASE64 ---- */
+  .base64-out {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 10px 12px;
+    font-family: 'SF Mono', monospace; font-size: 11px;
+    color: var(--accent3); word-break: break-all;
+    max-height: 120px; overflow-y: auto;
+  }
+
+  /* ---- SECTION LABEL ---- */
+  .section-label {
+    font-size: 13px; font-weight: 700; color: var(--text);
+    margin-bottom: 10px;
+  }
+
+  /* ---- RATIO PREVIEW ---- */
+  .ratio-preview {
+    font-size: 12px; color: var(--accent2); font-weight: 600;
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="upload-icon" style="font-size:22px">🖼️</div>
+  <h1>圖片<span>工具箱</span></h1>
+</div>
+
+<div class="mode-tabs">
+  <button class="tab-btn active" onclick="switchMode('resize')">📐 尺寸調整</button>
+  <button class="tab-btn" onclick="switchMode('crop')">✂️ 圖片裁切</button>
+  <button class="tab-btn" onclick="switchMode('base64')">🔄 Base64互轉</button>
+</div>
+
+<!-- ========== MODE 1: RESIZE ========== -->
+<div class="panel active" id="panel-resize">
+
+  <div class="card">
+    <div class="card-title">選擇圖片</div>
+    <div class="upload-area" id="resizeUploadArea">
+      <input type="file" id="resizeInput" accept="image/jpeg,image/png,image/heic,image/heif,image/webp" multiple onchange="handleResizeFiles(this.files)">
+      <div class="upload-icon">📁</div>
+      <div class="upload-text">點擊或拖曳圖片</div>
+      <div class="upload-sub">支援 JPEG · PNG · HEIC · WebP</div>
+    </div>
+    <div class="thumb-strip" id="resizeThumbs" style="margin-top:10px"></div>
+    <div class="file-count" id="resizeCount">已選擇：<span>0</span> 張</div>
+    <button class="btn btn-secondary" style="margin-top:10px;padding:10px" onclick="clearResize()">🗑 清空</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">尺寸設定</div>
+    <div class="pill-group" style="margin-bottom:12px">
+      <button class="pill active" id="dimMode-w" onclick="setDimMode('w')">固定寬度</button>
+      <button class="pill" id="dimMode-h" onclick="setDimMode('h')">固定高度</button>
+      <button class="pill" id="dimMode-wh" onclick="setDimMode('wh')">寬度與高度</button>
+    </div>
+
+    <div id="widthRow" class="input-row" style="margin-bottom:10px">
+      <label>寬 (px)</label>
+      <div class="pill-group" id="widthPresets">
+        <button class="pill" onclick="setWidth(1920)">1920</button>
+        <button class="pill" onclick="setWidth(1280)">1280</button>
+        <button class="pill active" onclick="setWidth(1024)">1024</button>
+        <button class="pill" onclick="setWidth(720)">720</button>
+        <button class="pill" onclick="setWidth(512)">512</button>
+        <button class="pill" onclick="setWidth(256)">256</button>
+      </div>
+    </div>
+    <div id="widthCustom" class="input-row" style="margin-bottom:10px">
+      <label>自訂</label>
+      <input type="number" id="customWidth" placeholder="寬度 px" value="1024">
+    </div>
+
+    <div id="heightRow" class="input-row" style="margin-bottom:10px;display:none">
+      <label>高 (px)</label>
+      <input type="number" id="customHeight" placeholder="高度 px" value="1024">
+    </div>
+
+    <div class="toggle-row" style="margin-bottom:12px">
+      <label>保持比例</label>
+      <div class="toggle on" id="ratioToggle" onclick="toggleRatio()"></div>
+    </div>
+
+    <div class="card-title" style="margin-top:4px">品質</div>
+    <div class="pill-group" id="qualityPills">
+      <button class="pill active" onclick="setQuality(1.0, this)">100%</button>
+      <button class="pill" onclick="setQuality(.95, this)">95%</button>
+      <button class="pill" onclick="setQuality(.90, this)">90%</button>
+      <button class="pill" onclick="setQuality(.85, this)">85%</button>
+      <button class="pill" onclick="setQuality(.80, this)">80%</button>
+      <button class="pill" onclick="setQuality(.70, this)">70%</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">輸出格式</div>
+    <div class="pill-group">
+      <button class="pill active" id="fmt-jpeg" onclick="setFormat('jpeg')">JPEG</button>
+      <button class="pill" id="fmt-png" onclick="setFormat('png')">PNG</button>
+      <button class="pill" id="fmt-webp" onclick="setFormat('webp')">WebP</button>
+    </div>
+  </div>
+
+  <div id="resizeResults" class="card" style="display:none">
+    <div class="card-title">輸出結果</div>
+    <div class="result-grid" id="resizeResultGrid"></div>
+  </div>
+
+  <div style="height:90px"></div>
+</div>
+
+<!-- ========== MODE 2: CROP ========== -->
+<div class="panel" id="panel-crop">
+
+  <div class="card">
+    <div class="card-title">選擇圖片</div>
+    <div class="upload-area" id="cropUploadArea">
+      <input type="file" id="cropInput" accept="image/jpeg,image/png,image/heic,image/heif,image/webp" onchange="handleCropFile(this.files[0])">
+      <div class="upload-icon">📁</div>
+      <div class="upload-text">點擊選擇圖片</div>
+      <div class="upload-sub">支援 JPEG · PNG · HEIC · WebP</div>
+    </div>
+  </div>
+
+  <div class="card" id="cropEditorCard" style="display:none">
+    <div class="card-title">裁切預覽</div>
+    <div class="crop-wrapper" id="cropWrapper">
+      <canvas id="cropCanvas"></canvas>
+      <div class="crop-overlay" id="cropOverlay">
+        <div class="crop-handle tl" data-corner="tl"></div>
+        <div class="crop-handle tr" data-corner="tr"></div>
+        <div class="crop-handle bl" data-corner="bl"></div>
+        <div class="crop-handle br" data-corner="br"></div>
+      </div>
+    </div>
+    <div class="ratio-preview" id="cropSizeLabel" style="margin-top:8px">裁切尺寸：—</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">裁切比例</div>
+    <div class="pill-group" id="ratioPills">
+      <button class="pill active-yellow pill" onclick="setCropRatio(1,1,this)">1:1 正方形</button>
+      <button class="pill" onclick="setCropRatio(0,0,this)">自由比例</button>
+      <button class="pill" onclick="setCropRatio(16,9,this)">16:9 橫幅</button>
+      <button class="pill" onclick="setCropRatio(9,16,this)">9:16 直幅</button>
+      <button class="pill" onclick="setCropRatio(4,3,this)">4:3 標準</button>
+      <button class="pill" onclick="setCropRatio(3,4,this)">3:4 肖像</button>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="card-title">輸出尺寸 (px)</div>
+      <div class="input-row" style="gap:8px">
+        <label>寬</label>
+        <input type="number" id="cropOutW" placeholder="輸出寬" value="1024" style="flex:1">
+        <label>高</label>
+        <input type="number" id="cropOutH" placeholder="輸出高" value="1024" style="flex:1">
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="card-title">品質 & 格式</div>
+      <div class="pill-group" style="margin-bottom:8px" id="cropQualPills">
+        <button class="pill active" onclick="setCropQual(1.0,this)">100%</button>
+        <button class="pill" onclick="setCropQual(.90,this)">90%</button>
+        <button class="pill" onclick="setCropQual(.85,this)">85%</button>
+        <button class="pill" onclick="setCropQual(.80,this)">80%</button>
+      </div>
+      <div class="pill-group" id="cropFmtPills">
+        <button class="pill active" id="cfmt-jpeg" onclick="setCropFmt('jpeg')">JPEG</button>
+        <button class="pill" id="cfmt-png" onclick="setCropFmt('png')">PNG</button>
+        <button class="pill" id="cfmt-webp" onclick="setCropFmt('webp')">WebP</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="cropResultCard" class="card" style="display:none">
+    <div class="card-title">裁切結果</div>
+    <img id="cropResultImg" style="width:100%;border-radius:10px;display:block">
+    <div style="margin-top:10px">
+      <a id="cropDlBtn" class="btn btn-green" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;padding:13px;border-radius:12px;font-size:15px;font-weight:700;color:#000">
+        ⬇️ 下載裁切圖片
+      </a>
+    </div>
+  </div>
+
+  <div style="height:90px"></div>
+</div>
+
+<!-- ========== MODE 3: BASE64 ========== -->
+<div class="panel" id="panel-base64">
+
+  <div class="card">
+    <div class="card-title">圖片 → Base64</div>
+    <div class="upload-area" id="b64UploadArea">
+      <input type="file" id="b64Input" accept="image/*" multiple onchange="handleB64Files(this.files)">
+      <div class="upload-icon">🖼️</div>
+      <div class="upload-text">選擇圖片轉換為 Base64</div>
+      <div class="upload-sub">支援所有圖片格式</div>
+    </div>
+    <div class="thumb-strip" id="b64Thumbs" style="margin-top:10px"></div>
+    <div class="file-count" id="b64Count">已選擇：<span>0</span> 張</div>
+  </div>
+
+  <div id="b64ResultCard" class="card" style="display:none">
+    <div class="card-title">Base64 結果</div>
+    <div id="b64Results"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Base64 → 圖片</div>
+    <textarea id="b64Input2" placeholder="貼入 Base64 字串&#10;(格式: data:image/jpeg;base64,.... 或純 Base64)"></textarea>
+    <div style="margin-top:10px">
+      <div class="card-title" style="margin-bottom:8px">輸出格式</div>
+      <div class="pill-group" id="b64FmtPills">
+        <button class="pill active" id="b64fmt-jpeg" onclick="setB64Fmt('jpeg')">JPEG</button>
+        <button class="pill" id="b64fmt-png" onclick="setB64Fmt('png')">PNG</button>
+        <button class="pill" id="b64fmt-webp" onclick="setB64Fmt('webp')">WebP</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="b64ToImgResult" class="card" style="display:none">
+    <div class="card-title">轉換結果</div>
+    <img id="b64ToImgPreview" style="width:100%;border-radius:10px;display:block">
+    <div style="margin-top:10px">
+      <a id="b64ToImgDl" class="btn btn-primary" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;padding:13px;border-radius:12px;font-size:15px;font-weight:700;color:#fff">
+        ⬇️ 下載圖片
+      </a>
+    </div>
+  </div>
+
+  <div style="height:90px"></div>
+</div>
+
+<!-- ========== BOTTOM ACTION BAR ========== -->
+<div class="bottom-action">
+  <div id="actionResize">
+    <button class="btn btn-primary" id="processResizeBtn" onclick="processResize()" disabled>
+      ⚡ 開始處理
+    </button>
+    <div class="progress-bar-wrap" style="margin-top:8px" id="resizeProgressWrap" style="display:none">
+      <div class="progress-bar" id="resizeProgress"></div>
+    </div>
+  </div>
+  <div id="actionCrop" style="display:none">
+    <div class="btn-row">
+      <button class="btn btn-yellow" onclick="doCrop()">✂️ 執行裁切</button>
+      <button class="btn btn-secondary" onclick="resetCrop()">↩ 重設</button>
+    </div>
+  </div>
+  <div id="actionBase64" style="display:none">
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="doB64ToImg()">🔄 Base64 轉圖片</button>
+      <button class="btn btn-secondary" onclick="clearB64()">🗑 清空</button>
+    </div>
+  </div>
+</div>
+
+<canvas id="offscreen" style="display:none"></canvas>
+
+<script>
+// ======== GLOBALS ========
+let resizeFiles = [], resizeQuality = 1.0, resizeFormat = 'jpeg', dimMode = 'w', keepRatio = true;
+let cropImg = null, cropRatioW = 1, cropRatioH = 1, cropFreeRatio = false;
+let cropQuality = 1.0, cropFmt = 'jpeg';
+let b64Files = [], b64OutFmt = 'jpeg';
+let cropBox = { x: 50, y: 50, w: 200, h: 200 };
+let cropCanvasW = 0, cropCanvasH = 0;
+let dragging = null, dragStart = null, boxStart = null;
+
+// ======== MODE SWITCH ========
+function switchMode(m) {
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active', ['resize','crop','base64'][i]===m);
+  });
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+m).classList.add('active');
+  document.getElementById('actionResize').style.display = m==='resize'?'block':'none';
+  document.getElementById('actionCrop').style.display = m==='crop'?'block':'none';
+  document.getElementById('actionBase64').style.display = m==='base64'?'block':'none';
+}
+
+// ======== RESIZE ========
+function handleResizeFiles(files) {
+  for(let f of files) resizeFiles.push(f);
+  renderResizeThumbs();
+  document.getElementById('processResizeBtn').disabled = resizeFiles.length === 0;
+}
+function renderResizeThumbs() {
+  const strip = document.getElementById('resizeThumbs');
+  strip.innerHTML = '';
+  resizeFiles.forEach((f,i) => {
+    const div = document.createElement('div'); div.className = 'thumb-item';
+    const img = document.createElement('img'); img.src = URL.createObjectURL(f);
+    const del = document.createElement('div'); del.className = 'thumb-del'; del.textContent = '×';
+    del.onclick = ()=>{ resizeFiles.splice(i,1); renderResizeThumbs(); };
+    div.appendChild(img); div.appendChild(del); strip.appendChild(div);
+  });
+  document.getElementById('resizeCount').innerHTML = `已選擇：<span>${resizeFiles.length}</span> 張`;
+  document.getElementById('processResizeBtn').disabled = resizeFiles.length === 0;
+}
+function clearResize() { resizeFiles=[]; renderResizeThumbs(); document.getElementById('resizeResults').style.display='none'; }
+
+function setDimMode(m) {
+  dimMode = m;
+  ['w','h','wh'].forEach(x=>document.getElementById('dimMode-'+x).classList.toggle('active', x===m));
+  document.getElementById('widthRow').style.display = (m==='w'||m==='wh')?'flex':'none';
+  document.getElementById('widthCustom').style.display = (m==='w'||m==='wh')?'flex':'none';
+  document.getElementById('heightRow').style.display = (m==='h'||m==='wh')?'flex':'none';
+}
+function setWidth(w) {
+  document.getElementById('customWidth').value = w;
+  document.querySelectorAll('#widthPresets .pill').forEach(p=>p.classList.toggle('active', p.textContent==w));
+}
+function toggleRatio() {
+  keepRatio = !keepRatio;
+  document.getElementById('ratioToggle').classList.toggle('on', keepRatio);
+}
+function setQuality(q, btn) {
+  resizeQuality = q;
+  document.querySelectorAll('#qualityPills .pill').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setFormat(f) {
+  resizeFormat = f;
+  ['jpeg','png','webp'].forEach(x=>document.getElementById('fmt-'+x).classList.toggle('active', x===f));
+}
+
+async function processResize() {
+  if(!resizeFiles.length) return;
+  const grid = document.getElementById('resizeResultGrid');
+  grid.innerHTML = '';
+  document.getElementById('resizeResults').style.display = 'block';
+  const pw = document.getElementById('resizeProgress');
+  pw.style.width = '0%';
+
+  for(let i=0; i<resizeFiles.length; i++) {
+    const f = resizeFiles[i];
+    const url = await fileToDataURL(f);
+    const img = await loadImg(url);
+    let tw = parseInt(document.getElementById('customWidth').value)||1024;
+    let th = parseInt(document.getElementById('customHeight').value)||1024;
+
+    let dw, dh;
+    if(dimMode==='w') { dw=tw; dh=keepRatio?Math.round(img.height*(tw/img.width)):th; }
+    else if(dimMode==='h') { dh=th; dw=keepRatio?Math.round(img.width*(th/img.height)):tw; }
+    else { dw=tw; dh=keepRatio?Math.round(img.height*(tw/img.width)):th; }
+
+    const c = document.getElementById('offscreen');
+    c.width=dw; c.height=dh;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, dw, dh);
+    const mime = resizeFormat==='png'?'image/png':resizeFormat==='webp'?'image/webp':'image/jpeg';
+    const dataUrl = c.toDataURL(mime, resizeQuality);
+
+    const item = document.createElement('div'); item.className = 'result-item';
+    const ri = document.createElement('img'); ri.src = dataUrl;
+    const footer = document.createElement('div'); footer.className = 'result-item-footer';
+    const info = document.createElement('div'); info.className = 'result-info';
+    info.textContent = `${dw}×${dh}`;
+    const dl = document.createElement('a'); dl.className = 'dl-btn'; dl.href = dataUrl;
+    dl.download = `img_${i+1}.${resizeFormat}`; dl.textContent = '⬇️';
+    footer.appendChild(info); footer.appendChild(dl);
+    item.appendChild(ri); item.appendChild(footer);
+    grid.appendChild(item);
+    pw.style.width = ((i+1)/resizeFiles.length*100)+'%';
+  }
+}
+
+// ======== CROP ========
+function handleCropFile(f) {
+  if(!f) return;
+  const url = URL.createObjectURL(f);
+  loadImg(url).then(img=>{
+    cropImg = img;
+    const canvas = document.getElementById('cropCanvas');
+    const wrapper = document.getElementById('cropWrapper');
+    const maxW = wrapper.clientWidth;
+    const scale = maxW / img.width;
+    canvas.width = img.width; canvas.height = img.height;
+    canvas.style.width = maxW+'px';
+    canvas.style.height = Math.round(img.height*scale)+'px';
+    cropCanvasW = maxW;
+    cropCanvasH = Math.round(img.height*scale);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img,0,0);
+    document.getElementById('cropEditorCard').style.display='block';
+    document.getElementById('cropResultCard').style.display='none';
+    initCropBox();
+    renderCropOverlay();
+  });
+}
+
+function initCropBox() {
+  const s = Math.min(cropCanvasW, cropCanvasH) * 0.7;
+  cropBox = { x: (cropCanvasW-s)/2, y: (cropCanvasH-s)/2, w: s, h: s };
+  updateCropSizeLabel();
+}
+
+function renderCropOverlay() {
+  const ov = document.getElementById('cropOverlay');
+  ov.style.left = cropBox.x+'px';
+  ov.style.top = cropBox.y+'px';
+  ov.style.width = cropBox.w+'px';
+  ov.style.height = cropBox.h+'px';
+  updateCropSizeLabel();
+}
+
+function updateCropSizeLabel() {
+  if(!cropImg) return;
+  const scaleX = cropImg.width / cropCanvasW;
+  const scaleY = cropImg.height / cropCanvasH;
+  const rw = Math.round(cropBox.w * scaleX);
+  const rh = Math.round(cropBox.h * scaleY);
+  document.getElementById('cropSizeLabel').textContent = `裁切尺寸：${rw} × ${rh} px`;
+}
+
+function setCropRatio(w, h, btn) {
+  cropFreeRatio = (w===0&&h===0);
+  cropRatioW=w; cropRatioH=h;
+  document.querySelectorAll('#ratioPills .pill').forEach(p=>p.classList.remove('active','active-yellow'));
+  btn.classList.add('active-yellow');
+  if(!cropFreeRatio && cropBox) {
+    const newH = cropBox.w * (h/w);
+    cropBox.h = Math.min(newH, cropCanvasH - cropBox.y);
+    renderCropOverlay();
+  }
+  // sync output
+  if(!cropFreeRatio) {
+    const ow = parseInt(document.getElementById('cropOutW').value)||1024;
+    document.getElementById('cropOutH').value = Math.round(ow*(h/w));
+  }
+}
+function setCropQual(q,btn){ cropQuality=q; document.querySelectorAll('#cropQualPills .pill').forEach(p=>p.classList.remove('active')); btn.classList.add('active'); }
+function setCropFmt(f){ cropFmt=f; ['jpeg','png','webp'].forEach(x=>document.getElementById('cfmt-'+x).classList.toggle('active',x===f)); }
+
+// Touch/mouse drag for crop
+const cropOverlay = document.getElementById('cropOverlay');
+function getPos(e, el) {
+  const r = el.getBoundingClientRect();
+  const t = e.touches ? e.touches[0] : e;
+  return { x: t.clientX - r.left, y: t.clientY - r.top };
+}
+function getWrapperPos(e) {
+  const r = document.getElementById('cropWrapper').getBoundingClientRect();
+  const t = e.touches ? e.touches[0] : e;
+  return { x: t.clientX - r.left, y: t.clientY - r.top };
+}
+
+cropOverlay.addEventListener('touchstart', e=>{
+  const corner = e.target.dataset.corner;
+  if(corner) { dragging='corner:'+corner; }
+  else { dragging='move'; }
+  dragStart = getWrapperPos(e);
+  boxStart = {...cropBox};
+  e.preventDefault();
+},{passive:false});
+
+document.addEventListener('touchmove', e=>{
+  if(!dragging) return;
+  const pos = getWrapperPos(e);
+  const dx = pos.x - dragStart.x, dy = pos.y - dragStart.y;
+  if(dragging==='move') {
+    cropBox.x = Math.max(0, Math.min(cropCanvasW-cropBox.w, boxStart.x+dx));
+    cropBox.y = Math.max(0, Math.min(cropCanvasH-cropBox.h, boxStart.y+dy));
+  } else {
+    const corner = dragging.split(':')[1];
+    let nx=boxStart.x, ny=boxStart.y, nw=boxStart.w, nh=boxStart.h;
+    if(corner==='br') { nw=Math.max(40,boxStart.w+dx); nh=cropFreeRatio?Math.max(40,boxStart.h+dy):nw*(cropRatioH/cropRatioW); }
+    else if(corner==='bl') { const dw=Math.max(40,boxStart.w-dx); nx=boxStart.x+boxStart.w-dw; nw=dw; nh=cropFreeRatio?Math.max(40,boxStart.h+dy):nw*(cropRatioH/cropRatioW); }
+    else if(corner==='tr') { nw=Math.max(40,boxStart.w+dx); nh=cropFreeRatio?Math.max(40,boxStart.h-dy):nw*(cropRatioH/cropRatioW); ny=boxStart.y+boxStart.h-nh; }
+    else if(corner==='tl') { const dw=Math.max(40,boxStart.w-dx); nx=boxStart.x+boxStart.w-dw; nw=dw; nh=cropFreeRatio?Math.max(40,boxStart.h-dy):nw*(cropRatioH/cropRatioW); ny=boxStart.y+boxStart.h-nh; }
+    nw = Math.min(nw, cropCanvasW-nx);
+    nh = Math.min(nh, cropCanvasH-ny);
+    nx = Math.max(0,nx); ny = Math.max(0,ny);
+    cropBox = {x:nx, y:ny, w:nw, h:nh};
+  }
+  renderCropOverlay();
+  e.preventDefault();
+},{passive:false});
+
+document.addEventListener('touchend', ()=>{ dragging=null; });
+
+function doCrop() {
+  if(!cropImg) return;
+  const scaleX = cropImg.width / cropCanvasW;
+  const scaleY = cropImg.height / cropCanvasH;
+  const sx = Math.round(cropBox.x*scaleX), sy = Math.round(cropBox.y*scaleY);
+  const sw = Math.round(cropBox.w*scaleX), sh = Math.round(cropBox.h*scaleY);
+  const outW = parseInt(document.getElementById('cropOutW').value)||sw;
+  const outH = parseInt(document.getElementById('cropOutH').value)||sh;
+  const c = document.getElementById('offscreen');
+  c.width=outW; c.height=outH;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(cropImg, sx, sy, sw, sh, 0, 0, outW, outH);
+  const mime = cropFmt==='png'?'image/png':cropFmt==='webp'?'image/webp':'image/jpeg';
+  const dataUrl = c.toDataURL(mime, cropQuality);
+  document.getElementById('cropResultImg').src = dataUrl;
+  const dl = document.getElementById('cropDlBtn');
+  dl.href = dataUrl; dl.download = `cropped.${cropFmt}`;
+  document.getElementById('cropResultCard').style.display='block';
+  document.getElementById('cropResultCard').scrollIntoView({behavior:'smooth'});
+}
+
+function resetCrop() {
+  if(cropImg) { initCropBox(); renderCropOverlay(); }
+  document.getElementById('cropResultCard').style.display='none';
+}
+
+// ======== BASE64 ========
+function handleB64Files(files) {
+  b64Files = Array.from(files);
+  const strip = document.getElementById('b64Thumbs');
+  strip.innerHTML = '';
+  b64Files.forEach(f=>{
+    const div = document.createElement('div'); div.className='thumb-item';
+    const img = document.createElement('img'); img.src=URL.createObjectURL(f);
+    div.appendChild(img); strip.appendChild(div);
+  });
+  document.getElementById('b64Count').innerHTML=`已選擇：<span>${b64Files.length}</span> 張`;
+
+  const resultCard = document.getElementById('b64ResultCard');
+  const resultDiv = document.getElementById('b64Results');
+  resultDiv.innerHTML = '';
+  resultCard.style.display = 'block';
+
+  b64Files.forEach((f,i)=>{
+    fileToDataURL(f).then(dataUrl=>{
+      const block = document.createElement('div');
+      block.style.cssText = 'margin-bottom:12px';
+      const label = document.createElement('div');
+      label.className = 'card-title'; label.style.marginBottom='6px';
+      label.textContent = `圖片 ${i+1}: ${f.name}`;
+      const out = document.createElement('div');
+      out.className = 'base64-out'; out.textContent = dataUrl;
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'btn btn-secondary'; copyBtn.style.cssText='margin-top:8px;padding:10px;font-size:13px';
+      copyBtn.textContent = '📋 複製 Base64';
+      copyBtn.onclick = ()=>{ navigator.clipboard.writeText(dataUrl).then(()=>{ copyBtn.textContent='✅ 已複製!'; setTimeout(()=>copyBtn.textContent='📋 複製 Base64',2000); }); };
+      block.appendChild(label); block.appendChild(out); block.appendChild(copyBtn);
+      resultDiv.appendChild(block);
+    });
+  });
+}
+
+function setB64Fmt(f){ b64OutFmt=f; ['jpeg','png','webp'].forEach(x=>document.getElementById('b64fmt-'+x).classList.toggle('active',x===f)); }
+
+function doB64ToImg() {
+  let raw = document.getElementById('b64Input2').value.trim();
+  if(!raw) return;
+  let dataUrl = raw;
+  if(!raw.startsWith('data:')) {
+    // bare base64 → try jpeg
+    dataUrl = `data:image/jpeg;base64,${raw}`;
+  }
+  loadImg(dataUrl).then(img=>{
+    const c = document.getElementById('offscreen');
+    c.width=img.width; c.height=img.height;
+    c.getContext('2d').drawImage(img,0,0);
+    const mime = b64OutFmt==='png'?'image/png':b64OutFmt==='webp'?'image/webp':'image/jpeg';
+    const out = c.toDataURL(mime, 0.92);
+    document.getElementById('b64ToImgPreview').src=out;
+    const dl = document.getElementById('b64ToImgDl');
+    dl.href=out; dl.download=`converted.${b64OutFmt}`;
+    document.getElementById('b64ToImgResult').style.display='block';
+  }).catch(()=>alert('Base64 格式有誤，請確認後再試'));
+}
+
+function clearB64() {
+  b64Files=[];
+  document.getElementById('b64Thumbs').innerHTML='';
+  document.getElementById('b64Count').innerHTML='已選擇：<span>0</span> 張';
+  document.getElementById('b64ResultCard').style.display='none';
+  document.getElementById('b64Input2').value='';
+  document.getElementById('b64ToImgResult').style.display='none';
+}
+
+// ======== UTILS ========
+function fileToDataURL(f) {
+  return new Promise(res=>{
+    const r = new FileReader();
+    r.onload=e=>res(e.target.result);
+    r.readAsDataURL(f);
+  });
+}
+function loadImg(src) {
+  return new Promise((res,rej)=>{
+    const i = new Image();
+    i.onload=()=>res(i);
+    i.onerror=rej;
+    i.src=src;
+  });
+}
+
+// Init
+setDimMode('w');
+</script>
+</body>
+</html>
