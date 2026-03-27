@@ -417,13 +417,47 @@
     </div>
 
     <div style="margin-top:12px">
-      <div class="card-title">輸出尺寸 (px)</div>
-      <div class="input-row" style="gap:8px">
-        <label>寬</label>
-        <input type="number" id="cropOutW" placeholder="輸出寬" value="1024" style="flex:1">
-        <label>高</label>
-        <input type="number" id="cropOutH" placeholder="輸出高" value="1024" style="flex:1">
+      <div class="card-title">輸出尺寸</div>
+
+      <!-- Side selector -->
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="pill active" id="cropSideW" onclick="setCropSide('w')">以寬度為主</button>
+        <button class="pill" id="cropSideH" onclick="setCropSide('h')">以高度為主</button>
       </div>
+
+      <!-- Width presets (shown when side=w) -->
+      <div id="cropSideWRow">
+        <div class="pill-group" id="cropOutWPills" style="margin-bottom:8px">
+          <button class="pill" onclick="setCropOutW(1920,this)">1920</button>
+          <button class="pill" onclick="setCropOutW(1280,this)">1280</button>
+          <button class="pill active" onclick="setCropOutW(1024,this)">1024</button>
+          <button class="pill" onclick="setCropOutW(720,this)">720</button>
+          <button class="pill" onclick="setCropOutW(512,this)">512</button>
+          <button class="pill" onclick="setCropOutW(256,this)">256</button>
+          <button class="pill" onclick="setCropOutW('custom',this)">自訂</button>
+        </div>
+        <div id="cropOutWCustomRow" style="display:none;margin-bottom:4px">
+          <input type="number" id="cropOutWInput" placeholder="自訂寬度 px" value="1024" oninput="cropOutWVal=+this.value;updateCropOutBadge()">
+        </div>
+      </div>
+
+      <!-- Height presets (shown when side=h) -->
+      <div id="cropSideHRow" style="display:none">
+        <div class="pill-group" id="cropOutHPills" style="margin-bottom:8px">
+          <button class="pill" onclick="setCropOutH(1920,this)">1920</button>
+          <button class="pill" onclick="setCropOutH(1280,this)">1280</button>
+          <button class="pill active" onclick="setCropOutH(1024,this)">1024</button>
+          <button class="pill" onclick="setCropOutH(720,this)">720</button>
+          <button class="pill" onclick="setCropOutH(512,this)">512</button>
+          <button class="pill" onclick="setCropOutH(256,this)">256</button>
+          <button class="pill" onclick="setCropOutH('custom',this)">自訂</button>
+        </div>
+        <div id="cropOutHCustomRow" style="display:none;margin-bottom:4px">
+          <input type="number" id="cropOutHInput" placeholder="自訂高度 px" value="1024" oninput="cropOutHVal=+this.value;updateCropOutBadge()">
+        </div>
+      </div>
+
+      <div class="info-badge" id="cropOutSizeBadge" style="margin-top:8px">輸出：— px</div>
     </div>
 
     <div style="margin-top:12px">
@@ -532,6 +566,7 @@
 let resizeFiles = [], resizeQuality = 1.0, resizeFormat = 'jpeg', dimMode = 'w', keepRatio = true;
 let cropImg = null, cropRatioW = 1, cropRatioH = 1, cropFreeRatio = false;
 let cropQuality = 1.0, cropFmt = 'jpeg';
+let cropOutWVal = 1024, cropOutHVal = 1024;
 let b64Files = [], b64OutFmt = 'jpeg';
 let cropBox = { x: 50, y: 50, w: 200, h: 200 };
 let cropCanvasW = 0, cropCanvasH = 0;
@@ -677,6 +712,7 @@ function renderCropOverlay() {
   ov.style.width  = cropBox.w + 'px';
   ov.style.height = cropBox.h + 'px';
   updateCropSizeLabel();
+  updateCropOutBadge();
 }
 
 function updateCropSizeLabel() {
@@ -688,6 +724,69 @@ function updateCropSizeLabel() {
   document.getElementById('cropSizeLabel').textContent = `裁切尺寸：${rw} × ${rh} px`;
 }
 
+// cropOutSide: 'w' = fix width, auto-calc height; 'h' = fix height, auto-calc width
+let cropOutSide = 'w';
+
+function setCropSide(side) {
+  cropOutSide = side;
+  document.getElementById('cropSideW').classList.toggle('active', side === 'w');
+  document.getElementById('cropSideH').classList.toggle('active', side === 'h');
+  document.getElementById('cropSideWRow').style.display = side === 'w' ? 'block' : 'none';
+  document.getElementById('cropSideHRow').style.display = side === 'h' ? 'block' : 'none';
+  updateCropOutBadge();
+}
+
+function setCropOutW(v, btn) {
+  document.querySelectorAll('#cropOutWPills .pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  const customRow = document.getElementById('cropOutWCustomRow');
+  if(v === 'custom') {
+    customRow.style.display = 'block';
+    cropOutWVal = parseInt(document.getElementById('cropOutWInput').value) || 1024;
+  } else {
+    customRow.style.display = 'none';
+    cropOutWVal = v;
+  }
+  updateCropOutBadge();
+}
+
+function setCropOutH(v, btn) {
+  document.querySelectorAll('#cropOutHPills .pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  const customRow = document.getElementById('cropOutHCustomRow');
+  if(v === 'custom') {
+    customRow.style.display = 'block';
+    cropOutHVal = parseInt(document.getElementById('cropOutHInput').value) || 1024;
+  } else {
+    customRow.style.display = 'none';
+    cropOutHVal = v;
+  }
+  updateCropOutBadge();
+}
+
+function updateCropOutBadge() {
+  // Compute the "other" side from current crop box ratio
+  const ratio = (cropCanvasW > 0 && cropBox.w > 0) ? cropBox.h / cropBox.w : 1;
+  let displayW, displayH;
+  if(cropOutSide === 'w') {
+    displayW = cropOutWVal;
+    displayH = Math.round(cropOutWVal * ratio);
+  } else {
+    displayH = cropOutHVal;
+    displayW = Math.round(cropOutHVal / ratio);
+  }
+  document.getElementById('cropOutSizeBadge').textContent = `輸出：${displayW} × ${displayH} px`;
+}
+
+function getCropOutputSize() {
+  const ratio = cropBox.h / cropBox.w;
+  if(cropOutSide === 'w') {
+    return { w: cropOutWVal, h: Math.round(cropOutWVal * ratio) };
+  } else {
+    return { w: Math.round(cropOutHVal / ratio), h: cropOutHVal };
+  }
+}
+
 function setCropRatio(w, h, btn) {
   cropFreeRatio = (w === 0 && h === 0);
   cropRatioW = w; cropRatioH = h;
@@ -696,8 +795,6 @@ function setCropRatio(w, h, btn) {
   if(!cropFreeRatio && cropBox && cropCanvasW > 0) {
     cropBox.h = Math.min(cropBox.w * (h / w), cropCanvasH - cropBox.y);
     renderCropOverlay();
-    const ow = parseInt(document.getElementById('cropOutW').value) || 1024;
-    document.getElementById('cropOutH').value = Math.round(ow * (h / w));
   }
 }
 function setCropQual(q, btn) { cropQuality = q; document.querySelectorAll('#cropQualPills .pill').forEach(p => p.classList.remove('active')); btn.classList.add('active'); }
@@ -791,8 +888,7 @@ function doCrop() {
   const scaleY = cropImg.height / cropCanvasH;
   const sx = Math.round(cropBox.x * scaleX), sy = Math.round(cropBox.y * scaleY);
   const sw = Math.round(cropBox.w * scaleX), sh = Math.round(cropBox.h * scaleY);
-  const outW = parseInt(document.getElementById('cropOutW').value) || sw;
-  const outH = parseInt(document.getElementById('cropOutH').value) || sh;
+  const { w: outW, h: outH } = getCropOutputSize();
   const c = document.getElementById('offscreen');
   c.width = outW; c.height = outH;
   c.getContext('2d').drawImage(cropImg, sx, sy, sw, sh, 0, 0, outW, outH);
