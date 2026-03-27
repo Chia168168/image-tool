@@ -282,7 +282,32 @@
     max-height: 120px; overflow-y: auto;
   }
 
-  /* ---- SECTION LABEL ---- */
+  /* ---- B64 TXT RESULT THUMBS ---- */
+  .b64-thumb-item {
+    flex-shrink: 0; position: relative;
+    width: 90px;
+    border-radius: 10px; overflow: hidden;
+    border: 1.5px solid var(--border); background: var(--surface);
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .b64-thumb-item img {
+    width: 90px; height: 70px; object-fit: cover; display: block;
+  }
+  .b64-thumb-footer {
+    padding: 4px 4px 6px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px; width: 100%;
+  }
+  .b64-thumb-name {
+    font-size: 9px; color: var(--text2);
+    text-align: center; word-break: break-all; max-width: 80px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .b64-thumb-dl {
+    padding: 3px 8px; border-radius: 6px;
+    background: var(--accent); color: #fff;
+    font-size: 10px; font-weight: 700;
+    text-decoration: none; display: inline-block;
+  }
   .section-label {
     font-size: 13px; font-weight: 700; color: var(--text);
     margin-bottom: 10px;
@@ -544,15 +569,16 @@
   <div class="card">
     <div class="card-title">Base64 → 圖片</div>
     <!-- txt file picker -->
-    <div style="margin-bottom:10px">
-      <div class="upload-area" style="padding:16px 12px" id="b64TxtUploadArea">
-        <input type="file" id="b64TxtInput" accept=".txt,text/plain" multiple onchange="handleB64TxtFile(this.files)">
-        <div style="font-size:22px;margin-bottom:4px">📄</div>
-        <div class="upload-text" style="font-size:13px">選擇 .txt 文字檔（可複選）</div>
-        <div class="upload-sub">或直接貼入下方文字框</div>
-      </div>
+    <div class="upload-area" style="padding:16px 12px">
+      <input type="file" id="b64TxtInput" accept=".txt,text/plain" multiple onchange="handleB64TxtFile(this.files)">
+      <div style="font-size:22px;margin-bottom:4px">📄</div>
+      <div class="upload-text" style="font-size:13px">選擇 .txt 文字檔（可複選）</div>
+      <div class="upload-sub">每個 .txt 對應一張圖片</div>
     </div>
-    <textarea id="b64Input2" placeholder="貼入 Base64 字串&#10;(格式: data:image/jpeg;base64,.... 或純 Base64)"></textarea>
+    <div style="margin-top:10px">
+      <div class="card-title" style="margin-bottom:4px">或貼入 Base64 字串</div>
+      <textarea id="b64Input2" placeholder="data:image/jpeg;base64,.... 或純 Base64" style="min-height:70px"></textarea>
+    </div>
     <div style="margin-top:10px">
       <div class="card-title" style="margin-bottom:8px">輸出格式</div>
       <div class="pill-group" id="b64FmtPills">
@@ -563,6 +589,16 @@
     </div>
   </div>
 
+  <!-- txt → img results: thumbnail strip -->
+  <div id="b64TxtResultCard" class="card" style="display:none">
+    <div class="card-title">轉換結果</div>
+    <div class="thumb-strip" id="b64TxtThumbs" style="flex-wrap:wrap;gap:10px"></div>
+    <div style="margin-top:10px">
+      <button class="btn btn-primary" onclick="downloadAllB64TxtImgs()">⬇️ 全部下載</button>
+    </div>
+  </div>
+
+  <!-- single paste result -->
   <div id="b64ToImgResult" class="card" style="display:none">
     <div class="card-title">轉換結果</div>
     <img id="b64ToImgPreview" style="width:100%;border-radius:10px;display:block">
@@ -642,24 +678,29 @@ function renderResizeThumbs() {
     wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0';
     const div = document.createElement('div'); div.className = 'thumb-item';
     const imgEl = document.createElement('img');
+    imgEl.style.cssText = 'width:100%;height:100%;object-fit:cover';
     const info = document.createElement('div');
     info.style.cssText = 'font-size:10px;color:var(--text2);text-align:center;max-width:70px;word-break:break-all';
 
-    // Show thumbnail — convert HEIC if needed
+    if(isHEIC(f)) {
+      imgEl.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // 1px transparent
+      info.textContent = '⏳ HEIC轉換中';
+    } else {
+      imgEl.src = URL.createObjectURL(f);
+      const ext = f.name.split('.').pop().toUpperCase();
+      info.textContent = ext;
+    }
+
+    // Async: get converted dataURL, then update thumb + dimensions
     fileToDataURL(f).then(dataUrl => {
       imgEl.src = dataUrl;
-      const tmpImg = new Image();
-      tmpImg.onload = () => {
+      const tmp = new Image();
+      tmp.onload = () => {
         const ext = isHEIC(f) ? 'HEIC→JPG' : f.name.split('.').pop().toUpperCase();
-        info.textContent = `${tmpImg.naturalWidth}×${tmpImg.naturalHeight} ${ext}`;
+        info.textContent = `${tmp.naturalWidth}×${tmp.naturalHeight} ${ext}`;
       };
-      tmpImg.src = dataUrl;
+      tmp.src = dataUrl;
     });
-
-    if(isHEIC(f)) {
-      imgEl.src = ''; // placeholder
-      info.textContent = '⏳ 轉換中...';
-    }
 
     const del = document.createElement('div'); del.className = 'thumb-del'; del.textContent = '×';
     del.onclick = () => { resizeFiles.splice(i, 1); renderResizeThumbs(); };
@@ -1122,32 +1163,69 @@ function saveAllB64AsTxt() {
   a.download = `base64_export_${b64DataStore.length}files.txt`; a.click();
 }
 
+let b64TxtImgStore = []; // {dataUrl, filename}
+
 function handleB64TxtFile(files) {
   if(!files || !files.length) return;
-  const textarea = document.getElementById('b64Input2');
-  textarea.value = '';
-  let loaded = 0;
-  const results = new Array(files.length);
+  b64TxtImgStore = [];
+  const strip = document.getElementById('b64TxtThumbs');
+  strip.innerHTML = '';
+  document.getElementById('b64TxtResultCard').style.display = 'block';
+
+  const mime = b64OutFmt==='png'?'image/png':b64OutFmt==='webp'?'image/webp':'image/jpeg';
+
   Array.from(files).forEach((f, idx) => {
+    // Placeholder thumb while loading
+    const item = document.createElement('div'); item.className = 'b64-thumb-item';
+    const imgEl = document.createElement('img');
+    imgEl.style.background = 'var(--surface)';
+    imgEl.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    const footer = document.createElement('div'); footer.className = 'b64-thumb-footer';
+    const nameEl = document.createElement('div'); nameEl.className = 'b64-thumb-name';
+    nameEl.textContent = '⏳ ' + f.name;
+    footer.appendChild(nameEl);
+    item.appendChild(imgEl); item.appendChild(footer);
+    strip.appendChild(item);
+
     const reader = new FileReader();
     reader.onload = e => {
       let text = e.target.result.trim();
-      // Extract first valid data URL per file
-      const match = text.match(/data:[^,]+;base64,[A-Za-z0-9+/=\n\r]+/);
-      if(match) text = match[0].replace(/[\n\r]/g, '');
-      results[idx] = text;
-      loaded++;
-      if(loaded === files.length) {
-        // If single file, put directly; multiple files → numbered list
-        if(files.length === 1) {
-          textarea.value = results[0];
-        } else {
-          textarea.value = results.map((r, i) => `// 檔案 ${i+1}: ${files[i].name}\n${r}`).join('\n\n');
-        }
-      }
+      // Extract all data URLs in file (support multi-export format)
+      const matches = [...text.matchAll(/data:[^,\s]+;base64,[A-Za-z0-9+/=\r\n]+/g)];
+      let dataUrl = matches.length > 0
+        ? matches[0][0].replace(/[\r\n]/g, '')
+        : (text.startsWith('data:') ? text.replace(/[\r\n]/g, '') : `data:image/jpeg;base64,${text.replace(/[\r\n]/g, '')}`);
+
+      loadImg(dataUrl).then(img => {
+        // Convert to target format
+        const c = document.getElementById('offscreen');
+        c.width = img.width; c.height = img.height;
+        c.getContext('2d').drawImage(img, 0, 0);
+        const outUrl = c.toDataURL(mime, 0.92);
+        const baseName = f.name.replace(/\.txt$/i, '');
+        const filename = `${baseName}.${b64OutFmt}`;
+
+        b64TxtImgStore[idx] = { dataUrl: outUrl, filename };
+
+        // Update thumb
+        imgEl.src = outUrl;
+        nameEl.textContent = baseName;
+        const dl = document.createElement('a'); dl.className = 'b64-thumb-dl';
+        dl.href = outUrl; dl.download = filename; dl.textContent = '⬇️';
+        footer.appendChild(dl);
+      }).catch(() => { nameEl.textContent = '❌ ' + f.name; });
     };
     reader.readAsText(f);
   });
+}
+
+async function downloadAllB64TxtImgs() {
+  const items = b64TxtImgStore.filter(Boolean);
+  for(let i = 0; i < items.length; i++) {
+    await new Promise(res => setTimeout(res, i * 200));
+    const a = document.createElement('a');
+    a.href = items[i].dataUrl; a.download = items[i].filename; a.click();
+  }
 }
 
 function setB64Fmt(f) { b64OutFmt = f; ['jpeg','png','webp'].forEach(x => document.getElementById('b64fmt-'+x).classList.toggle('active', x === f)); }
@@ -1171,12 +1249,14 @@ function doB64ToImg() {
 }
 
 function clearB64() {
-  b64Files = []; b64DataStore = [];
+  b64Files = []; b64DataStore = []; b64TxtImgStore = [];
   document.getElementById('b64Thumbs').innerHTML = '';
   document.getElementById('b64Count').innerHTML = '已選擇：<span>0</span> 張';
   document.getElementById('b64ResultCard').style.display = 'none';
   document.getElementById('b64Input2').value = '';
   document.getElementById('b64ToImgResult').style.display = 'none';
+  document.getElementById('b64TxtResultCard').style.display = 'none';
+  document.getElementById('b64TxtThumbs').innerHTML = '';
 }
 
 // ======== UTILS ========
@@ -1186,18 +1266,33 @@ function isHEIC(f) {
   return /\.(heic|heif)$/i.test(f.name) || f.type === 'image/heic' || f.type === 'image/heif';
 }
 
-// Convert file to dataURL, auto-converts HEIC on non-Safari browsers
-async function fileToDataURL(f) {
-  // Safari & iOS handle HEIC natively; other browsers need heic2any
-  const needsConvert = isHEIC(f) && !(/^((?!chrome|android).)*safari/i.test(navigator.userAgent));
+// Cache: WeakMap from File → Promise<dataURL> so HEIC is only converted once
+const heicCache = new WeakMap();
+
+// Convert file to dataURL, auto-converts HEIC on non-Safari browsers, with caching
+function fileToDataURL(f) {
+  if(heicCache.has(f)) return heicCache.get(f);
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  const needsConvert = isHEIC(f) && !isSafari;
+  let promise;
   if(needsConvert) {
-    try {
-      const blob = await heic2any({ blob: f, toType: 'image/jpeg', quality: 0.92 });
-      return await blobToDataURL(Array.isArray(blob) ? blob[0] : blob);
-    } catch(e) {
-      console.warn('heic2any failed, trying raw', e);
-    }
+    promise = (async () => {
+      try {
+        const blob = await heic2any({ blob: f, toType: 'image/jpeg', quality: 0.92 });
+        return await blobToDataURL(Array.isArray(blob) ? blob[0] : blob);
+      } catch(e) {
+        console.warn('heic2any failed, trying raw', e);
+        return await rawFileToDataURL(f);
+      }
+    })();
+  } else {
+    promise = rawFileToDataURL(f);
   }
+  heicCache.set(f, promise);
+  return promise;
+}
+
+function rawFileToDataURL(f) {
   return new Promise(res => {
     const r = new FileReader();
     r.onload = e => res(e.target.result);
