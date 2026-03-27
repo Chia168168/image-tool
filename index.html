@@ -6,6 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>圖片工具</title>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
 <style>
   :root {
     --bg: #0a0a0f;
@@ -545,9 +546,9 @@
     <!-- txt file picker -->
     <div style="margin-bottom:10px">
       <div class="upload-area" style="padding:16px 12px" id="b64TxtUploadArea">
-        <input type="file" id="b64TxtInput" accept=".txt,text/plain" onchange="handleB64TxtFile(this.files[0])">
+        <input type="file" id="b64TxtInput" accept=".txt,text/plain" multiple onchange="handleB64TxtFile(this.files)">
         <div style="font-size:22px;margin-bottom:4px">📄</div>
-        <div class="upload-text" style="font-size:13px">選擇 .txt 文字檔</div>
+        <div class="upload-text" style="font-size:13px">選擇 .txt 文字檔（可複選）</div>
         <div class="upload-sub">或直接貼入下方文字框</div>
       </div>
     </div>
@@ -640,21 +641,29 @@ function renderResizeThumbs() {
     const wrap = document.createElement('div');
     wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0';
     const div = document.createElement('div'); div.className = 'thumb-item';
-    const img = document.createElement('img');
-    const url = URL.createObjectURL(f);
-    img.src = url;
-    // Show original dimensions once loaded
+    const imgEl = document.createElement('img');
     const info = document.createElement('div');
     info.style.cssText = 'font-size:10px;color:var(--text2);text-align:center;max-width:70px;word-break:break-all';
-    const tmpImg = new Image();
-    tmpImg.onload = () => {
-      const ext = f.name.split('.').pop().toUpperCase();
-      info.textContent = `${tmpImg.naturalWidth}×${tmpImg.naturalHeight} ${ext}`;
-    };
-    tmpImg.src = url;
+
+    // Show thumbnail — convert HEIC if needed
+    fileToDataURL(f).then(dataUrl => {
+      imgEl.src = dataUrl;
+      const tmpImg = new Image();
+      tmpImg.onload = () => {
+        const ext = isHEIC(f) ? 'HEIC→JPG' : f.name.split('.').pop().toUpperCase();
+        info.textContent = `${tmpImg.naturalWidth}×${tmpImg.naturalHeight} ${ext}`;
+      };
+      tmpImg.src = dataUrl;
+    });
+
+    if(isHEIC(f)) {
+      imgEl.src = ''; // placeholder
+      info.textContent = '⏳ 轉換中...';
+    }
+
     const del = document.createElement('div'); del.className = 'thumb-del'; del.textContent = '×';
     del.onclick = () => { resizeFiles.splice(i, 1); renderResizeThumbs(); };
-    div.appendChild(img); div.appendChild(del);
+    div.appendChild(imgEl); div.appendChild(del);
     wrap.appendChild(div); wrap.appendChild(info);
     strip.appendChild(wrap);
   });
@@ -1113,17 +1122,32 @@ function saveAllB64AsTxt() {
   a.download = `base64_export_${b64DataStore.length}files.txt`; a.click();
 }
 
-function handleB64TxtFile(f) {
-  if(!f) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    let text = e.target.result.trim();
-    // If multi-file export format, extract first data URL
-    const match = text.match(/data:[^,]+;base64,[A-Za-z0-9+/=\n]+/);
-    if(match) text = match[0].replace(/\n/g, '');
-    document.getElementById('b64Input2').value = text;
-  };
-  reader.readAsText(f);
+function handleB64TxtFile(files) {
+  if(!files || !files.length) return;
+  const textarea = document.getElementById('b64Input2');
+  textarea.value = '';
+  let loaded = 0;
+  const results = new Array(files.length);
+  Array.from(files).forEach((f, idx) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      let text = e.target.result.trim();
+      // Extract first valid data URL per file
+      const match = text.match(/data:[^,]+;base64,[A-Za-z0-9+/=\n\r]+/);
+      if(match) text = match[0].replace(/[\n\r]/g, '');
+      results[idx] = text;
+      loaded++;
+      if(loaded === files.length) {
+        // If single file, put directly; multiple files → numbered list
+        if(files.length === 1) {
+          textarea.value = results[0];
+        } else {
+          textarea.value = results.map((r, i) => `// 檔案 ${i+1}: ${files[i].name}\n${r}`).join('\n\n');
+        }
+      }
+    };
+    reader.readAsText(f);
+  });
 }
 
 function setB64Fmt(f) { b64OutFmt = f; ['jpeg','png','webp'].forEach(x => document.getElementById('b64fmt-'+x).classList.toggle('active', x === f)); }
@@ -1156,19 +1180,45 @@ function clearB64() {
 }
 
 // ======== UTILS ========
-function fileToDataURL(f) {
-  return new Promise(res=>{
+
+// Detects HEIC by file extension or MIME type
+function isHEIC(f) {
+  return /\.(heic|heif)$/i.test(f.name) || f.type === 'image/heic' || f.type === 'image/heif';
+}
+
+// Convert file to dataURL, auto-converts HEIC on non-Safari browsers
+async function fileToDataURL(f) {
+  // Safari & iOS handle HEIC natively; other browsers need heic2any
+  const needsConvert = isHEIC(f) && !(/^((?!chrome|android).)*safari/i.test(navigator.userAgent));
+  if(needsConvert) {
+    try {
+      const blob = await heic2any({ blob: f, toType: 'image/jpeg', quality: 0.92 });
+      return await blobToDataURL(Array.isArray(blob) ? blob[0] : blob);
+    } catch(e) {
+      console.warn('heic2any failed, trying raw', e);
+    }
+  }
+  return new Promise(res => {
     const r = new FileReader();
-    r.onload=e=>res(e.target.result);
+    r.onload = e => res(e.target.result);
     r.readAsDataURL(f);
   });
 }
+
+function blobToDataURL(blob) {
+  return new Promise(res => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.readAsDataURL(blob);
+  });
+}
+
 function loadImg(src) {
-  return new Promise((res,rej)=>{
+  return new Promise((res, rej) => {
     const i = new Image();
-    i.onload=()=>res(i);
-    i.onerror=rej;
-    i.src=src;
+    i.onload = () => res(i);
+    i.onerror = rej;
+    i.src = src;
   });
 }
 
