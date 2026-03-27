@@ -298,7 +298,7 @@
 
 <div class="topbar">
   <div class="upload-icon" style="font-size:22px">🖼️</div>
-  <h1>圖片<span>工具箱</span></h1>
+  <h1>TENG圖片<span>工具箱</span></h1>
 </div>
 
 <div class="mode-tabs">
@@ -672,7 +672,8 @@ async function processResize() {
     const info = document.createElement('div'); info.className = 'result-info';
     info.textContent = `${dw}×${dh}`;
     const dl = document.createElement('a'); dl.className = 'dl-btn'; dl.href = dataUrl;
-    dl.download = `img_${i+1}.${resizeFormat}`; dl.textContent = '⬇️';
+    const baseName = f.name.replace(/\.[^.]+$/, '') || `img_${i+1}`;
+    dl.download = `${baseName}_${dw}x${dh}.${resizeFormat}`; dl.textContent = '⬇️';
     footer.appendChild(info); footer.appendChild(dl);
     item.appendChild(ri); item.appendChild(footer);
     grid.appendChild(item);
@@ -681,8 +682,12 @@ async function processResize() {
 }
 
 // ======== CROP ========
+let cropOriginalName = 'image'; // store original filename without extension
+
 function handleCropFile(f) {
   if(!f) return;
+  // Extract base name without extension
+  cropOriginalName = f.name.replace(/\.[^.]+$/, '') || 'image';
   const url = URL.createObjectURL(f);
   loadImg(url).then(img => {
     cropImg = img;
@@ -921,7 +926,7 @@ function doCrop() {
   const dataUrl = c.toDataURL(mime, cropQuality);
   document.getElementById('cropResultImg').src = dataUrl;
   const dl = document.getElementById('cropDlBtn');
-  dl.href = dataUrl; dl.download = `cropped.${cropFmt}`;
+  dl.href = dataUrl; dl.download = `${cropOriginalName}_cropped.${cropFmt}`;
   document.getElementById('cropResultCard').style.display = 'block';
   document.getElementById('cropResultCard').scrollIntoView({ behavior: 'smooth' });
 }
