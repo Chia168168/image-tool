@@ -1279,11 +1279,29 @@ function toggleSelectAllTxt() {
 async function downloadSelectedTxt() {
   const selected = b64TxtImgStore.filter(r => r && r.dataUrl && r.selected);
   if(!selected.length) return;
-  for(let i = 0; i < selected.length; i++) {
-    await new Promise(res => setTimeout(res, i * 200));
+  if(selected.length === 1) {
     const a = document.createElement('a');
-    a.href = selected[i].dataUrl; a.download = selected[i].filename; a.click();
+    a.href = selected[0].dataUrl;
+    a.download = selected[0].filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return;
   }
+  const zip = new JSZip();
+  selected.forEach(r => {
+    const base64 = r.dataUrl.split(',')[1];
+    zip.file(r.filename, base64, {base64: true});
+  });
+  const blob = await zip.generateAsync({type:'blob'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'images.zip';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function setB64Fmt(f) { b64OutFmt = f; ['jpeg','png','webp'].forEach(x => document.getElementById('b64fmt-'+x).classList.toggle('active', x === f)); }
