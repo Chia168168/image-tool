@@ -856,9 +856,11 @@ async function downloadSelected() {
   for(let i = 0; i < selected.length; i++) {
     await new Promise(res => setTimeout(res, i * 200));
     const a = document.createElement('a');
-    a.href = selected[i].dataUrl;
-    a.download = selected[i].filename;
-    a.click();
+a.href = selected[i].dataUrl;
+a.download = selected[i].filename;
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
   }
 }
 
