@@ -1136,6 +1136,8 @@ function resetCrop() {
 
 // ======== BASE64 ========
 let b64DataStore = []; // {name, dataUrl}
+let b64TxtImgStore = []; // {dataUrl, filename, selected}
+let selectAllTxtState = true;
 
 function handleB64Files(files) {
   Array.from(files).forEach(f => b64Files.push(f));
