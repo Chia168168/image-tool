@@ -1235,7 +1235,9 @@ function handleB64TxtFile(files) {
   const mime = b64OutFmt==='png'?'image/png':b64OutFmt==='webp'?'image/webp':'image/jpeg';
 
   Array.from(files).forEach((f) => {
+    alert('processing: ' + f.name);
     const idx = b64TxtImgStore.length;
+
     b64TxtImgStore.push({ dataUrl: null, filename: null, selected: true });
 
     // Build placeholder item (same structure as resize result-item)
