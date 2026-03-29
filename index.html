@@ -1278,7 +1278,8 @@ function handleB64TxtFile(files) {
         dl.href = outUrl; dl.download = filename;
         dl.style.opacity = '1'; dl.style.pointerEvents = 'auto';
         updateSelectedTxtCount();
-      }).catch(() => { info.textContent = '❌ ' + f.name; cb.disabled = true; b64TxtImgStore[idx].selected = false; });
+            }).catch((err) => { info.textContent = '❌ ' + f.name + ' ' + err;
+ cb.disabled = true; b64TxtImgStore[idx].selected = false; });
     };
     reader.readAsText(f);
   });
