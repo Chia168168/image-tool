@@ -1256,7 +1256,10 @@ function handleB64TxtFile(files) {
 
     // Read txt and convert
     const reader = new FileReader();
+    reader.onerror = (e) => { info.textContent = '❌ reader error ' + e; };
     reader.onload = e => {
+      info.textContent = '⏳ 解析中...';
+
       let text = e.target.result.trim();
       const matches = [...text.matchAll(/data:[^,\s]+;base64,[A-Za-z0-9+/=\r\n]+/g)];
       let dataUrl = matches.length > 0
