@@ -1154,10 +1154,8 @@ function handleB64Files(files) {
   resultCard.style.display = 'block';
 
   b64Files.forEach((f, i) => {
-  const startIdx = b64Files.length - Array.from(files).length;
-  Array.from(files).forEach((f, j) => {
-    const i = startIdx + j;
     fileToDataURL(f).then(dataUrl => {
+      b64DataStore.push({ name: f.name.replace(/\.[^.]+$/, ''), dataUrl });
 
       const block = document.createElement('div'); block.style.cssText = 'margin-bottom:14px';
       const label = document.createElement('div');
@@ -1225,7 +1223,6 @@ function handleB64TxtFile(files) {
   const grid = document.getElementById('b64TxtResultGrid');
   document.getElementById('b64TxtResultCard').style.display = 'block';
   document.getElementById('selectAllTxtBtn').textContent = '☑ 全選';
-  document.getElementById('selectedTxtCount').textContent = '';
 
   const mime = b64OutFmt==='png'?'image/png':b64OutFmt==='webp'?'image/webp':'image/jpeg';
 
