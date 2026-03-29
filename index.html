@@ -1153,8 +1153,12 @@ function handleB64Files(files) {
   const resultDiv  = document.getElementById('b64Results');
   resultCard.style.display = 'block';
 
-  b64Files.forEach((f, i) => {
+  const newFiles = Array.from(files);
+  const startIdx = b64Files.length - newFiles.length;
+  newFiles.forEach((f, j) => {
+    const i = startIdx + j;
     fileToDataURL(f).then(dataUrl => {
+
       b64DataStore.push({ name: f.name.replace(/\.[^.]+$/, ''), dataUrl });
 
       const block = document.createElement('div'); block.style.cssText = 'margin-bottom:14px';
@@ -1223,6 +1227,8 @@ function handleB64TxtFile(files) {
   const grid = document.getElementById('b64TxtResultGrid');
   document.getElementById('b64TxtResultCard').style.display = 'block';
   document.getElementById('selectAllTxtBtn').textContent = '☑ 全選';
+  document.getElementById('selectedTxtCount').textContent = '';
+
 
   const mime = b64OutFmt==='png'?'image/png':b64OutFmt==='webp'?'image/webp':'image/jpeg';
 
@@ -1350,7 +1356,10 @@ function clearB64() {
   document.getElementById('b64ToImgResult').style.display = 'none';
   document.getElementById('b64TxtResultCard').style.display = 'none';
   document.getElementById('b64TxtResultGrid').innerHTML = '';
+  document.getElementById('b64Input').value = '';
+  document.getElementById('b64TxtInput').value = '';
 }
+
 
 // ======== UTILS ========
 
