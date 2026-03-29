@@ -1287,8 +1287,10 @@ function handleB64TxtFile(files) {
  cb.disabled = true; b64TxtImgStore[idx].selected = false; });
     };
     reader.readAsText(f);
+    alert('reader started: ' + f.name);
   });
   updateSelectedTxtCount();
+
 }
 
 function updateSelectedTxtCount() {
