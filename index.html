@@ -1176,8 +1176,11 @@ function handleB64Files(files) {
       saveTxtBtn.onclick = () => {
         const blob = new Blob([dataUrl], { type: 'text/plain' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-        a.download = `${f.name.replace(/\.[^.]+$/, '')}_base64.txt`; a.click();
-      };
+        a.download = `${f.name.replace(/\.[^.]+$/, '')}_base64.txt`;
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+
 
       btnRow.appendChild(copyBtn); btnRow.appendChild(saveTxtBtn);
       block.appendChild(label); block.appendChild(out); block.appendChild(btnRow);
