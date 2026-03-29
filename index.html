@@ -1237,9 +1237,13 @@ function handleB64TxtFile(files) {
   Array.from(files).forEach((f) => {
     alert('processing: ' + f.name);
     const idx = b64TxtImgStore.length;
-
+    alert('idx: ' + idx);
     b64TxtImgStore.push({ dataUrl: null, filename: null, selected: true });
-alert('before createElement');
+    alert('after push');
+
+    // Build placeholder item
+    alert('before createElement');
+
     // Build placeholder item (same structure as resize result-item)
     const item = document.createElement('div'); item.className = 'result-item';
     item.style.position = 'relative';
