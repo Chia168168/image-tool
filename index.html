@@ -1273,8 +1273,10 @@ function handleB64TxtFile(files) {
 
         b64TxtImgStore[idx] = { dataUrl: outUrl, filename, selected: true };
 
+        alert(img.width + 'x' + img.height + ' ' + outUrl.substring(0,50));
         ri.src = outUrl;
         info.textContent = `${img.width}×${img.height}`;
+
         dl.href = outUrl; dl.download = filename;
         dl.style.opacity = '1'; dl.style.pointerEvents = 'auto';
         updateSelectedTxtCount();
