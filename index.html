@@ -1257,9 +1257,11 @@ function handleB64TxtFile(files) {
     footer.appendChild(info); footer.appendChild(dl);
     item.appendChild(cb); item.appendChild(ri); item.appendChild(footer);
     grid.appendChild(item);
+    alert('after appendChild');
 
     // Read txt and convert
     const reader = new FileReader();
+
     alert('before readAsText: ' + f.name);
     reader.onerror = (e) => { info.textContent = '❌ reader error ' + e; };
     reader.onload = e => {
