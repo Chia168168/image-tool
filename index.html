@@ -1186,16 +1186,34 @@ function handleB64Files(files) {
   });
 }
 
-function saveAllB64AsTxt() {
+async function saveAllB64AsTxt() {
   if(!b64DataStore.length) return;
-  const lines = b64DataStore.map((d,i) => `// ${i+1}: ${d.name}\n${d.dataUrl}`).join('\n\n');
-  const blob = new Blob([lines], { type: 'text/plain' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `base64_export_${b64DataStore.length}files.txt`; a.click();
+  if(b64DataStore.length === 1) {
+    const blob = new Blob([b64DataStore[0].dataUrl], {type:'text/plain'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${b64DataStore[0].name}_base64.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return;
+  }
+  const zip = new JSZip();
+  b64DataStore.forEach(d => {
+    const blob = new Blob([d.dataUrl], {type:'text/plain'});
+    zip.file(`${d.name}_base64.txt`, blob);
+  });
+  const zipBlob = await zip.generateAsync({type:'blob'});
+  const url = URL.createObjectURL(zipBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'base64_files.zip';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
-let b64TxtImgStore = []; // {dataUrl, filename, selected}
-let selectAllTxtState = true;
 
 function handleB64TxtFile(files) {
   if(!files || !files.length) return;
