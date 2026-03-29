@@ -1222,8 +1222,10 @@ async function saveAllB64AsTxt() {
 
 
 function handleB64TxtFile(files) {
+  alert('handleB64TxtFile called, files: ' + (files ? files.length : 'null'));
   if(!files || !files.length) return;
   selectAllTxtState = true;
+
   const grid = document.getElementById('b64TxtResultGrid');
   document.getElementById('b64TxtResultCard').style.display = 'block';
   document.getElementById('selectAllTxtBtn').textContent = '☑ 全選';
