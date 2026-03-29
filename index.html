@@ -1256,8 +1256,10 @@ function handleB64TxtFile(files) {
     dl.textContent = '⬇️'; dl.style.opacity = '0.3'; dl.style.pointerEvents = 'none';
     footer.appendChild(info); footer.appendChild(dl);
     item.appendChild(cb); item.appendChild(ri); item.appendChild(footer);
+    alert('before appendChild, grid: ' + (grid ? 'ok' : 'null'));
     grid.appendChild(item);
     alert('after appendChild');
+
 
     // Read txt and convert
     const reader = new FileReader();
