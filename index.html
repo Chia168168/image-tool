@@ -1239,7 +1239,7 @@ function handleB64TxtFile(files) {
     const idx = b64TxtImgStore.length;
 
     b64TxtImgStore.push({ dataUrl: null, filename: null, selected: true });
-
+alert('before createElement');
     // Build placeholder item (same structure as resize result-item)
     const item = document.createElement('div'); item.className = 'result-item';
     item.style.position = 'relative';
