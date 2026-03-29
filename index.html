@@ -1224,7 +1224,7 @@ async function saveAllB64AsTxt() {
 
 
 function handleB64TxtFile(files) {
-  alert('handleB64TxtFile called, files: ' + (files ? files.length : 'null'));
+
   if(!files || !files.length) return;
   selectAllTxtState = true;
 
@@ -1237,14 +1237,14 @@ function handleB64TxtFile(files) {
   const mime = b64OutFmt==='png'?'image/png':b64OutFmt==='webp'?'image/webp':'image/jpeg';
 
   Array.from(files).forEach((f) => {
-    alert('processing: ' + f.name);
+
     const idx = b64TxtImgStore.length;
-    alert('idx: ' + idx);
+
     b64TxtImgStore.push({ dataUrl: null, filename: null, selected: true });
-    alert('after push');
+
 
     // Build placeholder item
-    alert('before createElement');
+
 
     // Build placeholder item (same structure as resize result-item)
     const item = document.createElement('div'); item.className = 'result-item';
@@ -1262,18 +1262,17 @@ function handleB64TxtFile(files) {
     dl.textContent = '⬇️'; dl.style.opacity = '0.3'; dl.style.pointerEvents = 'none';
     footer.appendChild(info); footer.appendChild(dl);
     item.appendChild(cb); item.appendChild(ri); item.appendChild(footer);
-    alert('before appendChild, grid: ' + (grid ? 'ok' : 'null'));
+
     grid.appendChild(item);
-    alert('after appendChild');
 
 
     // Read txt and convert
     const reader = new FileReader();
 
-    alert('before readAsText: ' + f.name);
-    reader.onerror = (e) => { info.textContent = '❌ reader error ' + e; };
+
+
     reader.onload = e => {
-      info.textContent = '⏳ 解析中...';
+
 
 
       let text = e.target.result.trim();
@@ -1292,18 +1291,19 @@ function handleB64TxtFile(files) {
 
         b64TxtImgStore[idx] = { dataUrl: outUrl, filename, selected: true };
 
-        alert(img.width + 'x' + img.height + ' ' + outUrl.substring(0,50));
+
         ri.src = outUrl;
         info.textContent = `${img.width}×${img.height}`;
 
         dl.href = outUrl; dl.download = filename;
         dl.style.opacity = '1'; dl.style.pointerEvents = 'auto';
         updateSelectedTxtCount();
-            }).catch((err) => { info.textContent = '❌ ' + f.name + ' ' + err;
+      }).catch(() => { info.textContent = '❌ ' + f.name;
+
  cb.disabled = true; b64TxtImgStore[idx].selected = false; });
     };
     reader.readAsText(f);
-    alert('reader started: ' + f.name);
+
   });
   updateSelectedTxtCount();
 
