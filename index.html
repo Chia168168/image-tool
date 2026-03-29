@@ -1138,11 +1138,11 @@ function resetCrop() {
 let b64DataStore = []; // {name, dataUrl}
 
 function handleB64Files(files) {
-  b64Files = Array.from(files);
-  b64DataStore = [];
+  Array.from(files).forEach(f => b64Files.push(f));
   const strip = document.getElementById('b64Thumbs');
-  strip.innerHTML = '';
-  b64Files.forEach(f => {
+
+    Array.from(files).forEach(f => {
+
     const div = document.createElement('div'); div.className = 'thumb-item';
     const img = document.createElement('img'); img.src = URL.createObjectURL(f);
     div.appendChild(img); strip.appendChild(div);
@@ -1151,7 +1151,6 @@ function handleB64Files(files) {
 
   const resultCard = document.getElementById('b64ResultCard');
   const resultDiv  = document.getElementById('b64Results');
-  resultDiv.innerHTML = '';
   resultCard.style.display = 'block';
 
   b64Files.forEach((f, i) => {
@@ -1177,12 +1176,12 @@ function handleB64Files(files) {
         const blob = new Blob([dataUrl], { type: 'text/plain' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
         a.download = `${f.name.replace(/\.[^.]+$/, '')}_base64.txt`;
-document.body.appendChild(a);
-a.click();
-document.body.removeChild(a);
-
-
-      btnRow.appendChild(copyBtn); btnRow.appendChild(saveTxtBtn);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      };
+      btnRow.appendChild(copyBtn);
+      btnRow.appendChild(saveTxtBtn);
       block.appendChild(label); block.appendChild(out); block.appendChild(btnRow);
       resultDiv.appendChild(block);
     });
@@ -1220,18 +1219,15 @@ async function saveAllB64AsTxt() {
 
 function handleB64TxtFile(files) {
   if(!files || !files.length) return;
-  b64TxtImgStore = [];
   selectAllTxtState = true;
   const grid = document.getElementById('b64TxtResultGrid');
-  grid.innerHTML = '';
   document.getElementById('b64TxtResultCard').style.display = 'block';
-  document.getElementById('selectedTxtCount').textContent = '';
   document.getElementById('selectAllTxtBtn').textContent = '☑ 全選';
 
   const mime = b64OutFmt==='png'?'image/png':b64OutFmt==='webp'?'image/webp':'image/jpeg';
 
-  Array.from(files).forEach((f, idx) => {
-    // Reserve slot
+  Array.from(files).forEach((f) => {
+    const idx = b64TxtImgStore.length;
     b64TxtImgStore.push({ dataUrl: null, filename: null, selected: true });
 
     // Build placeholder item (same structure as resize result-item)
