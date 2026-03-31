@@ -926,8 +926,8 @@ const outerW = wrapper.parentElement.clientWidth;
 }
 
 function initCropBox() {
-  const w = cropCanvasW * 0.5;
-  const h = cropCanvasH * 0.5;
+  const w = cropCanvasW * 0.3;
+  const h = cropCanvasH * 0.3;
   cropBox = { x: (cropCanvasW - w) / 2, y: (cropCanvasH - h) / 2, w: w, h: h };
   // 原圖比例：用實際圖片寬高比
   if(cropRatioW === -1 && cropImg) {
