@@ -472,8 +472,8 @@ margin-top: 8px;
   <div class="card">
     <div class="card-title">裁切比例</div>
     <div class="pill-group" id="ratioPills">
-      <button class="pill active-yellow pill" onclick="setCropRatio(1,1,this)">1:1 正方形</button>
-      <button class="pill" onclick="setCropRatio(0,0,this)">自由比例</button>
+      <button class="pill" onclick="setCropRatio(1,1,this)">1:1 正方形</button>
+      <button class="pill active-yellow" onclick="setCropRatio(0,0,this)">自由比例</button>
       <button class="pill" onclick="setCropRatio(16,9,this)">16:9 橫幅</button>
       <button class="pill" onclick="setCropRatio(9,16,this)">9:16 直幅</button>
       <button class="pill" onclick="setCropRatio(4,3,this)">4:3 標準</button>
@@ -659,7 +659,7 @@ margin-top: 8px;
 <script>
 // ======== GLOBALS ========
 let resizeFiles = [], resizeQuality = 1.0, resizeFormat = 'jpeg', dimMode = 'w', keepRatio = true;
-let cropImg = null, cropRatioW = 1, cropRatioH = 1, cropFreeRatio = false;
+let cropImg = null, cropRatioW = 0, cropRatioH = 0, cropFreeRatio = true;
 let cropQuality = 1.0, cropFmt = 'jpeg';
 let cropOutWVal = 1024, cropOutHVal = 1024;
 let b64Files = [], b64OutFmt = 'jpeg';
@@ -924,8 +924,9 @@ const outerW = wrapper.parentElement.clientWidth;
 }
 
 function initCropBox() {
-  const s = Math.min(cropCanvasW, cropCanvasH) * 0.7;
-  cropBox = { x: (cropCanvasW - s) / 2, y: (cropCanvasH - s) / 2, w: s, h: s };
+  const w = cropCanvasW * 0.9;
+  const h = cropCanvasH * 0.9;
+  cropBox = { x: (cropCanvasW - w) / 2, y: (cropCanvasH - h) / 2, w: w, h: h };
   if(!cropFreeRatio && cropRatioW > 0) {
     cropBox.h = cropBox.w * (cropRatioH / cropRatioW);
     cropBox.y = (cropCanvasH - cropBox.h) / 2;
