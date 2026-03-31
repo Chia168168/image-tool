@@ -197,10 +197,10 @@ touch-action: none; user-select: none; -webkit-user-select: none;
 flex-shrink: 0;
 }
 #cropPreviewImg {
-display: block;
-max-width: 100%; max-height: 60dvh;
-width: auto; height: auto;
-pointer-events: none;
+  display: block;
+  max-width: 100%; max-height: 60dvh;
+  width: 100%; height: auto;
+  pointer-events: none;
 }
 .crop-overlay {
 position: absolute; border: 2px solid var(--accent2);
@@ -913,6 +913,12 @@ function syncCropCanvasSize() {
     : Math.round(cropImg.height * (iRect.width / cropImg.width));
   // Make wrapper exactly the same size as the rendered image
   // so the overlay div is positioned relative to the image pixels, not any surrounding space
+const outerW = wrapper.parentElement.clientWidth;
+  if(cropCanvasW > outerW) {
+    const scale = outerW / cropCanvasW;
+    cropCanvasW = outerW;
+    cropCanvasH = Math.round(cropCanvasH * scale);
+  }
   wrapper.style.width  = cropCanvasW + 'px';
   wrapper.style.height = cropCanvasH + 'px';
 }
