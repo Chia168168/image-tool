@@ -1030,15 +1030,16 @@ function getCropOutputSize() {
 function setCropRatio(w, h, btn) {
   cropFreeRatio = (w === 0 && h === 0);
   cropRatioW = w; cropRatioH = h;
-  if(w === -1 && h === -1 && cropImg) {
+if(w === -1 && h === -1 && cropImg) {
     cropRatioW = cropImg.width;
     cropRatioH = cropImg.height;
     cropFreeRatio = false;
-  }  
+  }
   document.querySelectorAll('#ratioPills .pill').forEach(p => p.classList.remove('active', 'active-yellow'));
   btn.classList.add('active-yellow');
   if(!cropFreeRatio && cropBox && cropCanvasW > 0) {
-    cropBox.h = Math.min(cropBox.w * (h / w), cropCanvasH - cropBox.y);
+    cropBox.h = Math.min(cropBox.w * (cropRatioH / cropRatioW), cropCanvasH - cropBox.y);
+    cropBox.y = (cropCanvasH - cropBox.h) / 2;
     renderCropOverlay();
   }
 }
