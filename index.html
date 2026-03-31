@@ -924,8 +924,8 @@ const outerW = wrapper.parentElement.clientWidth;
 }
 
 function initCropBox() {
-  const w = cropCanvasW * 0.9;
-  const h = cropCanvasH * 0.9;
+  const w = cropCanvasW * 0.5;
+  const h = cropCanvasH * 0.5;
   cropBox = { x: (cropCanvasW - w) / 2, y: (cropCanvasH - h) / 2, w: w, h: h };
   if(!cropFreeRatio && cropRatioW > 0) {
     cropBox.h = cropBox.w * (cropRatioH / cropRatioW);
