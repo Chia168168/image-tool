@@ -356,7 +356,7 @@ margin-top: 8px;
 <div class="card">
   <div class="card-title">旋轉 & 鏡像</div>
   <div class="btn-row">
-    <button class="btn btn-secondary" onclick="resizeRotate=(resizeRotate+90)%360;document.getElementById('resizeRotateBtn').textContent='↺ 旋轉 '+resizeRotate+'°'" id="resizeRotateBtn">↺ 旋轉90°</button>
+    <button class="btn btn-secondary" onclick="resizeRotate=(resizeRotate+90)%360;document.getElementById('resizeRotateBtn').textContent='↺ 旋轉 '+resizeRotate+'°'" id="resizeRotateBtn">↺ 旋轉0°</button>
     <button class="btn btn-secondary" onclick="resizeFlip=!resizeFlip;this.classList.toggle('btn-yellow',resizeFlip)">⇆ 左右鏡像</button>
   </div>
 </div>
@@ -477,7 +477,7 @@ margin-top: 8px;
 <div class="card">
   <div class="card-title">旋轉 & 鏡像</div>
   <div class="btn-row">
-    <button class="btn btn-secondary" onclick="rotateCrop()">↺ 旋轉90°</button>
+    <button class="btn btn-secondary" onclick="rotateCrop()">↺ 旋轉0°</button>
     <button class="btn btn-secondary" onclick="flipCrop()" id="flipBtn">⇆ 左右鏡像</button>
   </div>
 </div>
@@ -589,7 +589,7 @@ margin-top: 8px;
 <div class="card">
   <div class="card-title">旋轉 & 鏡像</div>
   <div class="btn-row">
-    <button class="btn btn-secondary" onclick="b64Rotate=(b64Rotate+90)%360;document.getElementById('b64RotateBtn').textContent='↺ 旋轉 '+b64Rotate+'°'" id="b64RotateBtn">↺ 旋轉90°</button>
+    <button class="btn btn-secondary" onclick="b64Rotate=(b64Rotate+90)%360;document.getElementById('b64RotateBtn').textContent='↺ 旋轉 '+b64Rotate+'°'" id="b64RotateBtn">↺ 旋轉0°</button>
     <button class="btn btn-secondary" onclick="b64Flip=!b64Flip;this.classList.toggle('btn-yellow',b64Flip)">⇆ 左右鏡像</button>
   </div>
 </div>
@@ -1169,6 +1169,7 @@ function applyTransform(img, rotate, flip) {
 }
 function rotateCrop() {
   cropRotate = (cropRotate + 90) % 360;
+  document.getElementById('cropRotateBtn').textContent = '↺ 旋轉 ' + cropRotate + '°';  
   redrawCropPreview();
 }
 function flipCrop() {
