@@ -353,7 +353,13 @@ margin-top: 8px;
     <div class="file-count" id="resizeCount">已選擇：<span>0</span> 張</div>
     <button class="btn btn-secondary" style="margin-top:10px;padding:10px" onclick="clearResize()">🗑 清空</button>
   </div>
-
+<div class="card">
+  <div class="card-title">旋轉 & 鏡像</div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="resizeRotate=(resizeRotate+90)%360;document.getElementById('resizeRotateBtn').textContent='↺ 旋轉 '+resizeRotate+'°'" id="resizeRotateBtn">↺ 旋轉90°</button>
+    <button class="btn btn-secondary" onclick="resizeFlip=!resizeFlip;this.classList.toggle('btn-yellow',resizeFlip)">⇆ 左右鏡像</button>
+  </div>
+</div>
   <div class="card">
     <div class="card-title">尺寸設定</div>
     <div class="pill-group" style="margin-bottom:12px">
@@ -580,7 +586,13 @@ margin-top: 8px;
     <div class="thumb-strip" id="b64Thumbs" style="margin-top:10px"></div>
     <div class="file-count" id="b64Count">已選擇：<span>0</span> 張</div>
   </div>
-
+<div class="card">
+  <div class="card-title">旋轉 & 鏡像</div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="b64Rotate=(b64Rotate+90)%360;document.getElementById('b64RotateBtn').textContent='↺ 旋轉 '+b64Rotate+'°'" id="b64RotateBtn">↺ 旋轉90°</button>
+    <button class="btn btn-secondary" onclick="b64Flip=!b64Flip;this.classList.toggle('btn-yellow',b64Flip)">⇆ 左右鏡像</button>
+  </div>
+</div>
   <div id="b64ResultCard" class="card" style="display:none">
     <div class="card-title">Base64 結果</div>
     <div id="b64Results"></div>
@@ -669,6 +681,8 @@ margin-top: 8px;
 let resizeFiles = [], resizeQuality = 1.0, resizeFormat = 'jpeg', dimMode = 'w', keepRatio = true;
 let cropImg = null, cropRatioW = -1, cropRatioH = -1, cropFreeRatio = false;
 let cropRotate = 0, cropFlip = false;
+let resizeRotate = 0, resizeFlip = false;
+let b64Rotate = 0, b64Flip = false;
 let cropQuality = 1.0, cropFmt = 'jpeg';
 let cropOutWVal = 1024, cropOutHVal = 1024;
 let b64Files = [], b64OutFmt = 'jpeg';
@@ -741,6 +755,8 @@ function renderResizeThumbs() {
 
 function clearResize() {
   resizeFiles = []; resizeResults = [];
+  resizeRotate = 0; resizeFlip = false;
+  document.getElementById('resizeRotateBtn').textContent = '↺ 旋轉90°';
   renderResizeThumbs();
   document.getElementById('resizeResults').style.display = 'none';
 }
@@ -816,9 +832,11 @@ async function processResize() {
     else if(dimMode === 'h') { dh = th; dw = keepRatio ? Math.round(img.width*(th/img.height)) : tw; }
     else { dw = tw; dh = keepRatio ? Math.round(img.height*(tw/img.width)) : th; }
 
+    const transformed = (resizeRotate || resizeFlip) ? applyTransform(img, resizeRotate, resizeFlip) : null;
+    const srcImg = transformed || img;
     const c = document.getElementById('offscreen');
     c.width = dw; c.height = dh;
-    c.getContext('2d').drawImage(img, 0, 0, dw, dh);
+    c.getContext('2d').drawImage(srcImg, 0, 0, dw, dh);
     const mime = resizeFormat==='png'?'image/png':resizeFormat==='webp'?'image/webp':'image/jpeg';
     const dataUrl = c.toDataURL(mime, resizeQuality);
     const baseName = f.name.replace(/\.[^.]+$/, '') || `img_${i+1}`;
@@ -1134,6 +1152,18 @@ window.addEventListener('resize', () => {
     renderCropOverlay();
   });
 });
+function applyTransform(img, rotate, flip) {
+  const swapped = rotate === 90 || rotate === 270;
+  const c = document.createElement('canvas');
+  c.width  = swapped ? img.height : img.width;
+  c.height = swapped ? img.width  : img.height;
+  const ctx = c.getContext('2d');
+  ctx.translate(c.width / 2, c.height / 2);
+  ctx.rotate(rotate * Math.PI / 180);
+  if(flip) ctx.scale(-1, 1);
+  ctx.drawImage(img, -img.width / 2, -img.height / 2);
+  return c;
+}
 function rotateCrop() {
   cropRotate = (cropRotate + 90) % 360;
   redrawCropPreview();
@@ -1220,29 +1250,34 @@ function handleB64Files(files) {
 
   const newFiles = Array.from(files);
   const startIdx = b64Files.length - newFiles.length;
-  newFiles.forEach((f, j) => {
+newFiles.forEach((f, j) => {
     const i = startIdx + j;
-    fileToDataURL(f).then(dataUrl => {
+    fileToDataURL(f).then(async dataUrl => {
+      let finalUrl = dataUrl;
+      if(b64Rotate || b64Flip) {
+        const img = await loadImg(dataUrl);
+        finalUrl = applyTransform(img, b64Rotate, b64Flip).toDataURL('image/jpeg', 0.92);
+      }
 
-      b64DataStore.push({ name: f.name.replace(/\.[^.]+$/, ''), dataUrl });
+      b64DataStore.push({ name: f.name.replace(/\.[^.]+$/, ''), dataUrl: finalUrl });
 
       const block = document.createElement('div'); block.style.cssText = 'margin-bottom:14px';
       const label = document.createElement('div');
       label.className = 'card-title'; label.style.marginBottom = '6px';
       label.textContent = `圖片 ${i+1}: ${f.name}`;
-      const out = document.createElement('div'); out.className = 'base64-out'; out.textContent = dataUrl;
+      const out = document.createElement('div'); out.className = 'base64-out'; out.textContent = finalUrl;
 
       const btnRow = document.createElement('div'); btnRow.style.cssText = 'display:flex;gap:8px;margin-top:8px';
       const copyBtn = document.createElement('button');
       copyBtn.className = 'btn btn-secondary'; copyBtn.style.cssText = 'padding:9px;font-size:13px;flex:1';
       copyBtn.textContent = '📋 複製';
-      copyBtn.onclick = () => { navigator.clipboard.writeText(dataUrl).then(() => { copyBtn.textContent = '✅ 已複製!'; setTimeout(() => copyBtn.textContent = '📋 複製', 2000); }); };
+      copyBtn.onclick = () => { navigator.clipboard.writeText(finalUrl).then(() => { copyBtn.textContent = '✅ 已複製!'; setTimeout(() => copyBtn.textContent = '📋 複製', 2000); }); };
 
       const saveTxtBtn = document.createElement('button');
       saveTxtBtn.className = 'btn btn-secondary'; saveTxtBtn.style.cssText = 'padding:9px;font-size:13px;flex:1';
       saveTxtBtn.textContent = '💾 存 .txt';
       saveTxtBtn.onclick = () => {
-        const blob = new Blob([dataUrl], { type: 'text/plain' });
+        const blob = new Blob([finalUrl], { type: 'text/plain' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
         a.download = `${f.name.replace(/\.[^.]+$/, '')}_base64.txt`;
         document.body.appendChild(a);
@@ -1447,6 +1482,8 @@ function clearB64() {
   document.getElementById('b64TxtResultGrid').innerHTML = '';
   document.getElementById('b64Input').value = '';
   document.getElementById('b64TxtInput').value = '';
+  b64Rotate = 0; b64Flip = false;
+  document.getElementById('b64RotateBtn').textContent = '↺ 旋轉90°';
 }
 
 
