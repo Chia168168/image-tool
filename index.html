@@ -832,8 +832,12 @@ async function processResize() {
     else if(dimMode === 'h') { dh = th; dw = keepRatio ? Math.round(img.width*(th/img.height)) : tw; }
     else { dw = tw; dh = keepRatio ? Math.round(img.height*(tw/img.width)) : th; }
 
-    const transformed = (resizeRotate || resizeFlip) ? applyTransform(img, resizeRotate, resizeFlip) : null;
+const transformed = (resizeRotate || resizeFlip) ? applyTransform(img, resizeRotate, resizeFlip) : null;
     const srcImg = transformed || img;
+    const swapped = resizeRotate === 90 || resizeRotate === 270;
+    const srcW = swapped ? img.height : img.width;
+    const srcH = swapped ? img.width  : img.height;
+
     const c = document.getElementById('offscreen');
     c.width = dw; c.height = dh;
     c.getContext('2d').drawImage(srcImg, 0, 0, dw, dh);
