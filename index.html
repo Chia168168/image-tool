@@ -827,16 +827,15 @@ async function processResize() {
     const tw = parseInt(document.getElementById('customWidth').value)  || parseInt(document.getElementById('customWidthVal').value)  || 1024;
     const th = parseInt(document.getElementById('customHeight').value) || parseInt(document.getElementById('customHeightVal').value) || 1024;
 
-    let dw, dh;
-    if(dimMode === 'w')  { dw = tw; dh = keepRatio ? Math.round(img.height*(tw/img.width)) : th; }
-    else if(dimMode === 'h') { dh = th; dw = keepRatio ? Math.round(img.width*(th/img.height)) : tw; }
-    else { dw = tw; dh = keepRatio ? Math.round(img.height*(tw/img.width)) : th; }
-
 const transformed = (resizeRotate || resizeFlip) ? applyTransform(img, resizeRotate, resizeFlip) : null;
     const srcImg = transformed || img;
     const swapped = resizeRotate === 90 || resizeRotate === 270;
     const srcW = swapped ? img.height : img.width;
     const srcH = swapped ? img.width  : img.height;
+    let dw, dh;
+    if(dimMode === 'w')       { dw = tw; dh = keepRatio ? Math.round(srcH*(tw/srcW)) : th; }
+    else if(dimMode === 'h')  { dh = th; dw = keepRatio ? Math.round(srcW*(th/srcH)) : tw; }
+    else                      { dw = tw; dh = keepRatio ? Math.round(srcH*(tw/srcW)) : th; }
 
     const c = document.getElementById('offscreen');
     c.width = dw; c.height = dh;
