@@ -911,14 +911,17 @@ async function downloadSelected() {
 // ======== CROP ========
 let cropOriginalName = 'image'; // store original filename without extension
 
+let cropOrigImg = null;
 function handleCropFile(f) {
   if(!f) return;
-  // Extract base name without extension
   cropOriginalName = f.name.replace(/\.[^.]+$/, '') || 'image';
-  cropRotate = 0; cropFlip = false;  
+  cropRotate = 0; cropFlip = false;
+
   const url = URL.createObjectURL(f);
   loadImg(url).then(img => {
-    cropImg = img;
+        cropImg = img;
+    cropOrigImg = img;
+
     const previewImg = document.getElementById('cropPreviewImg');
     // Show card first so element enters layout flow
     document.getElementById('cropEditorCard').style.display = 'block';
@@ -1178,17 +1181,18 @@ function flipCrop() {
   redrawCropPreview();
 }
 function redrawCropPreview() {
-  if(!cropImg) return;
+  if(!cropOrigImg) return;
   const offscreen = document.createElement('canvas');
   const r = cropRotate;
   const swapped = r === 90 || r === 270;
-  offscreen.width  = swapped ? cropImg.height : cropImg.width;
-  offscreen.height = swapped ? cropImg.width  : cropImg.height;
+  offscreen.width  = swapped ? cropOrigImg.height : cropOrigImg.width;
+  offscreen.height = swapped ? cropOrigImg.width  : cropOrigImg.height;
   const ctx = offscreen.getContext('2d');
   ctx.translate(offscreen.width / 2, offscreen.height / 2);
   ctx.rotate(r * Math.PI / 180);
   if(cropFlip) ctx.scale(-1, 1);
-  ctx.drawImage(cropImg, -cropImg.width / 2, -cropImg.height / 2);
+  ctx.drawImage(cropOrigImg, -cropOrigImg.width / 2, -cropOrigImg.height / 2);
+
   const newSrc = offscreen.toDataURL('image/jpeg', 0.92);
   const newImg = new Image();
   newImg.onload = () => {
